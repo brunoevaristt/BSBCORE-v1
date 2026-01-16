@@ -1,0 +1,7 @@
+{
+  "name": "BSB Core",
+  "description": "O núcleo financeiro e operacional da BSB Media. Controle financeiro, clientes recorrentes e projeções.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
