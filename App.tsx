@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { Menu } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
 import Finance from './pages/Finance';
@@ -29,6 +30,7 @@ const AppContent: React.FC = () => {
   // Modal State
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Notification State
   const [notification, setNotification] = useState<{ message: string, type: 'success' | 'info' | 'error' } | null>(null);
@@ -326,69 +328,84 @@ const AppContent: React.FC = () => {
         activePage={activePage}
         onNavigate={handleNavigate}
         onLogout={handleLogout}
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
       />
 
-      <main className="flex-1 ml-64 p-8 relative">
-        {/* Notification Toast */}
-        {notification && (
-          <div className={`fixed top-6 right-6 z-50 px-6 py-4 rounded-lg shadow-xl flex items-center animate-in slide-in-from-top-2 fade-in duration-300 ${notification.type === 'error' ? 'bg-rose-600 text-white' : 'bg-slate-900 text-white'}`}>
-            <div className={`w-2 h-2 rounded-full mr-3 ${notification.type === 'error' ? 'bg-white' : 'bg-emerald-400'}`}></div>
-            <p className="text-sm font-medium">{notification.message}</p>
+      <main className="flex-1 lg:ml-64 min-h-screen relative">
+        {/* Mobile Header */}
+        <header className="lg:hidden bg-white border-b border-slate-200 p-4 sticky top-0 z-30 flex items-center justify-between">
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">BSB<span className="text-slate-400 font-light">Core</span></h1>
+          <button
+            onClick={() => setIsSidebarOpen(true)}
+            className="p-2 text-slate-500 hover:text-slate-900 transition-colors"
+          >
+            <Menu size={24} />
+          </button>
+        </header>
+
+        <div className="p-4 md:p-8">
+          {/* Notification Toast */}
+          {notification && (
+            <div className={`fixed top-6 right-6 z-50 px-6 py-4 rounded-lg shadow-xl flex items-center animate-in slide-in-from-top-2 fade-in duration-300 ${notification.type === 'error' ? 'bg-rose-600 text-white' : 'bg-slate-900 text-white'}`}>
+              <div className={`w-2 h-2 rounded-full mr-3 ${notification.type === 'error' ? 'bg-white' : 'bg-emerald-400'}`}></div>
+              <p className="text-sm font-medium">{notification.message}</p>
+            </div>
+          )}
+
+          <div className="max-w-7xl mx-auto">
+            {activePage === 'dashboard' && <Dashboard transactions={transactions} clients={clients} />}
+
+            {activePage === 'tracking' && (
+              <Tracking
+                funnels={funnels}
+                entries={trackingEntries}
+                onAddEntry={handleAddTrackingEntry}
+                onUpdateEntry={handleUpdateTrackingEntry}
+                onDeleteEntry={handleDeleteTrackingEntry}
+                onUpdateFunnel={handleUpdateFunnel}
+              />
+            )}
+
+            {activePage === 'finance' && (
+              <Finance
+                transactions={transactions}
+                clients={clients}
+                onAddTransaction={handleAddTransaction}
+                onUpdateTransaction={handleUpdateTransaction}
+                onDeleteTransaction={handleDeleteTransaction}
+                onRepeatMonth={handleRepeatMonth}
+                onAddClient={() => { setEditingClient(null); setIsClientModalOpen(true); }}
+              />
+            )}
+
+            {activePage === 'clients' && (
+              <Clients
+                clients={clients}
+                onAddClient={() => { setEditingClient(null); setIsClientModalOpen(true); }}
+                onUpdateClient={handleUpdateClient}
+                onDeleteClient={handleDeleteClient}
+                onEditClient={openEditClientModal}
+              />
+            )}
+
+            {activePage === 'funnels' && <Funnels funnels={funnels} setFunnels={setFunnels} />}
+
+            {activePage === 'ai-intelligence' && (
+              <AIIntelligence
+                onConfirmTransactions={confirmAITransactions}
+                onConfirmClients={confirmAIClients}
+              />
+            )}
+
+            {activePage === 'settings' && (
+              <Settings
+                onExportData={handleExportData}
+                onImportData={handleImportData}
+                onClearData={handleClearData}
+              />
+            )}
           </div>
-        )}
-
-        <div className="max-w-7xl mx-auto">
-          {activePage === 'dashboard' && <Dashboard transactions={transactions} clients={clients} />}
-
-          {activePage === 'tracking' && (
-            <Tracking
-              funnels={funnels}
-              entries={trackingEntries}
-              onAddEntry={handleAddTrackingEntry}
-              onUpdateEntry={handleUpdateTrackingEntry}
-              onDeleteEntry={handleDeleteTrackingEntry}
-              onUpdateFunnel={handleUpdateFunnel}
-            />
-          )}
-
-          {activePage === 'finance' && (
-            <Finance
-              transactions={transactions}
-              clients={clients}
-              onAddTransaction={handleAddTransaction}
-              onUpdateTransaction={handleUpdateTransaction}
-              onDeleteTransaction={handleDeleteTransaction}
-              onRepeatMonth={handleRepeatMonth}
-              onAddClient={() => { setEditingClient(null); setIsClientModalOpen(true); }}
-            />
-          )}
-
-          {activePage === 'clients' && (
-            <Clients
-              clients={clients}
-              onAddClient={() => { setEditingClient(null); setIsClientModalOpen(true); }}
-              onUpdateClient={handleUpdateClient}
-              onDeleteClient={handleDeleteClient}
-              onEditClient={openEditClientModal}
-            />
-          )}
-
-          {activePage === 'funnels' && <Funnels funnels={funnels} setFunnels={setFunnels} />}
-
-          {activePage === 'ai-intelligence' && (
-            <AIIntelligence
-              onConfirmTransactions={confirmAITransactions}
-              onConfirmClients={confirmAIClients}
-            />
-          )}
-
-          {activePage === 'settings' && (
-            <Settings
-              onExportData={handleExportData}
-              onImportData={handleImportData}
-              onClearData={handleClearData}
-            />
-          )}
         </div>
       </main>
 

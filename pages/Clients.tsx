@@ -15,13 +15,13 @@ const Clients: React.FC<ClientsProps> = ({ clients, onAddClient, onUpdateClient,
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'paused' | 'churned'>('all');
 
   const filteredClients = clients.filter(client => {
-    const matchesSearch = client.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          client.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesSearch = client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      client.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesStatus = statusFilter === 'all' || client.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
-  const formatCurrency = (val: number) => 
+  const formatCurrency = (val: number) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
   return (
@@ -31,62 +31,67 @@ const Clients: React.FC<ClientsProps> = ({ clients, onAddClient, onUpdateClient,
           <h2 className="text-2xl font-bold text-slate-900">Clientes Recorrentes</h2>
           <p className="text-slate-500 text-sm">Gestão da base ativa e LTV.</p>
         </div>
-        <div className="flex gap-2 w-full md:w-auto">
-           <div className="relative flex-1 md:w-64">
-             <Search className="absolute left-3 top-2.5 text-slate-400 w-4 h-4" />
-             <input 
-               type="text" 
-               placeholder="Buscar cliente..." 
-               value={searchTerm}
-               onChange={(e) => setSearchTerm(e.target.value)}
-               className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-slate-400"
-             />
-           </div>
-           <div className="relative">
-             <Filter className="absolute left-3 top-2.5 text-slate-400 w-4 h-4" />
-             <select 
+        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+          <div className="relative flex-1 md:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+            <input
+              type="text"
+              placeholder="Buscar cliente..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-9 pr-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-4 focus:ring-slate-900/5 focus:border-slate-900 transition-all"
+            />
+          </div>
+          <div className="flex gap-2">
+            <div className="relative flex-1 sm:flex-none">
+              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+              <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value as any)}
-                className="pl-9 pr-8 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-slate-400 appearance-none bg-white cursor-pointer"
-             >
+                className="w-full pl-9 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-4 focus:ring-slate-900/5 focus:border-slate-900 appearance-none cursor-pointer transition-all"
+              >
                 <option value="all">Todos</option>
                 <option value="active">Ativos</option>
                 <option value="paused">Pausados</option>
                 <option value="churned">Cancelados</option>
-             </select>
-           </div>
-           <button 
-             onClick={onAddClient}
-             className="px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-md hover:bg-slate-800 transition-colors shadow-sm whitespace-nowrap"
-           >
-            Novo Cliente
-          </button>
+              </select>
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                <MoreHorizontal size={14} className="rotate-90" />
+              </div>
+            </div>
+            <button
+              onClick={onAddClient}
+              className="flex-1 sm:flex-none px-4 py-2.5 bg-slate-900 text-white text-sm font-bold rounded-xl hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/10 active:scale-[0.98] whitespace-nowrap"
+            >
+              Novo Cliente
+            </button>
+          </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredClients.map((client) => (
           <div key={client.id} className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition-all duration-200 group relative">
-            
+
             <div className="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button 
-                    onClick={() => onEditClient(client)}
-                    className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-full"
-                    title="Editar"
-                >
-                    <Edit2 size={16} />
-                </button>
-                <button 
-                    onClick={() => {
-                        if(confirm('Tem certeza que deseja excluir este cliente?')) {
-                            onDeleteClient(client.id);
-                        }
-                    }}
-                    className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-full"
-                    title="Excluir"
-                >
-                    <Trash2 size={16} />
-                </button>
+              <button
+                onClick={() => onEditClient(client)}
+                className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-full"
+                title="Editar"
+              >
+                <Edit2 size={16} />
+              </button>
+              <button
+                onClick={() => {
+                  if (confirm('Tem certeza que deseja excluir este cliente?')) {
+                    onDeleteClient(client.id);
+                  }
+                }}
+                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-full"
+                title="Excluir"
+              >
+                <Trash2 size={16} />
+              </button>
             </div>
 
             <div className="flex justify-between items-start mb-4 pr-16">
@@ -103,7 +108,7 @@ const Clients: React.FC<ClientsProps> = ({ clients, onAddClient, onUpdateClient,
                 </div>
               </div>
             </div>
-            
+
             <div className="space-y-3">
               <div className="flex justify-between text-sm border-b border-slate-50 pb-2">
                 <span className="text-slate-500">Valor Mensal</span>
@@ -114,8 +119,8 @@ const Clients: React.FC<ClientsProps> = ({ clients, onAddClient, onUpdateClient,
                 <span className="font-medium text-emerald-600">{formatCurrency(client.ltv)}</span>
               </div>
               <div className="flex justify-between text-sm pt-1">
-                 <span className="text-slate-500">Início</span>
-                 <span className="text-slate-700">{new Date(client.startDate).toLocaleDateString('pt-BR')}</span>
+                <span className="text-slate-500">Início</span>
+                <span className="text-slate-700">{new Date(client.startDate).toLocaleDateString('pt-BR')}</span>
               </div>
             </div>
 
@@ -128,7 +133,7 @@ const Clients: React.FC<ClientsProps> = ({ clients, onAddClient, onUpdateClient,
             </div>
           </div>
         ))}
-        
+
         {filteredClients.length === 0 && (
           <div className="col-span-full text-center py-12 text-slate-400">
             Nenhum cliente encontrado com os filtros atuais.
