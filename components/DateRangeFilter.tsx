@@ -12,9 +12,9 @@ const DateRangeFilter: React.FC<DateRangeFilterProps> = ({ filter, onChange }) =
     const type = e.target.value as DateFilterType;
     let startDate = '';
     let endDate = '';
-    
+
     const now = new Date();
-    
+
     if (type === 'last-week') {
       const lastWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
       startDate = lastWeek.toISOString().split('T')[0];
@@ -23,9 +23,19 @@ const DateRangeFilter: React.FC<DateRangeFilterProps> = ({ filter, onChange }) =
       const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
       startDate = lastMonth.toISOString().split('T')[0];
       endDate = now.toISOString().split('T')[0];
+    } else if (type === 'this-month') {
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+      endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+    } else if (['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'].includes(type)) {
+      const monthMap: Record<string, number> = {
+        'january': 0, 'february': 1, 'march': 2, 'april': 3, 'may': 4, 'june': 5,
+        'july': 6, 'august': 7, 'september': 8, 'october': 9, 'november': 10, 'december': 11
+      };
+      startDate = new Date(now.getFullYear(), monthMap[type], 1).toISOString().split('T')[0];
+      endDate = new Date(now.getFullYear(), monthMap[type] + 1, 0).toISOString().split('T')[0];
     } else if (type === 'specific-date') {
-       startDate = now.toISOString().split('T')[0];
-       endDate = now.toISOString().split('T')[0];
+      startDate = now.toISOString().split('T')[0];
+      endDate = now.toISOString().split('T')[0];
     }
 
     onChange({ type, startDate, endDate });
@@ -42,9 +52,24 @@ const DateRangeFilter: React.FC<DateRangeFilterProps> = ({ filter, onChange }) =
           onChange={handleTypeChange}
           className="pl-9 pr-8 py-1.5 bg-transparent text-sm font-medium text-slate-700 focus:outline-none appearance-none cursor-pointer hover:bg-slate-50 rounded bg-white"
         >
+          <option value="this-month">Este Mês</option>
           <option value="all">Todo o período</option>
           <option value="last-week">Última Semana</option>
           <option value="last-month">Último Mês</option>
+          <hr className="my-1 border-slate-100" />
+          <option value="january">Janeiro</option>
+          <option value="february">Fevereiro</option>
+          <option value="march">Março</option>
+          <option value="april">Abril</option>
+          <option value="may">Maio</option>
+          <option value="june">Junho</option>
+          <option value="july">Julho</option>
+          <option value="august">Agosto</option>
+          <option value="september">Setembro</option>
+          <option value="october">Outubro</option>
+          <option value="november">Novembro</option>
+          <option value="december">Dezembro</option>
+          <hr className="my-1 border-slate-100" />
           <option value="specific-date">Data Específica</option>
           <option value="custom">Período Personalizado</option>
         </select>

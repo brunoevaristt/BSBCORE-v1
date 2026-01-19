@@ -23,22 +23,37 @@ const Finance: React.FC<FinanceProps> = ({
   onRepeatMonth,
   onAddClient
 }) => {
-  const [dateFilter, setDateFilter] = useState<DateFilterState>({ type: 'all' });
+  const [dateFilter, setDateFilter] = useState<DateFilterState>(() => {
+    const now = new Date();
+    return {
+      type: 'this-month',
+      startDate: new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0],
+      endDate: new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0]
+    };
+  });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Partial<Transaction> | null>(null);
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
-  // Filter transactions
+  // Filter and Sort transactions
   const filteredTransactions = useMemo(() => {
-    if (dateFilter.type === 'all') return transactions;
+    let result = transactions;
+    if (dateFilter.type !== 'all') {
+      result = transactions.filter(t => {
+        if (!dateFilter.startDate) return true;
+        const tDate = t.date.split('T')[0];
+        const start = dateFilter.startDate;
+        const end = dateFilter.endDate || start;
+        return tDate >= start && tDate <= end;
+      });
+    }
 
-    return transactions.filter(t => {
-      if (!dateFilter.startDate) return true;
-      const tDate = t.date.split('T')[0];
-      const start = dateFilter.startDate;
-      const end = dateFilter.endDate || start;
-      return tDate >= start && tDate <= end;
+    return [...result].sort((a, b) => {
+      const dateA = new Date(a.date).getTime();
+      const dateB = new Date(b.date).getTime();
+      return sortDir === 'asc' ? dateA - dateB : dateB - dateA;
     });
-  }, [transactions, dateFilter]);
+  }, [transactions, dateFilter, sortDir]);
 
   const handleEdit = (transaction: Transaction) => {
     setEditingTransaction(transaction);
@@ -67,6 +82,29 @@ const Finance: React.FC<FinanceProps> = ({
 
   const formatCurrency = (val: number) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
+
+  const getMonthColor = (dateString: string) => {
+    const month = new Date(dateString).getMonth();
+    const colors = [
+      'bg-blue-50/50',      // Jan
+      'bg-emerald-50/50',   // Feb
+      'bg-purple-50/50',    // Mar
+      'bg-slate-50/50',     // Apr
+      'bg-indigo-50/50',    // May
+      'bg-rose-50/50',      // Jun
+      'bg-cyan-50/50',      // Jul
+      'bg-amber-50/50',     // Aug
+      'bg-violet-50/50',    // Sep
+      'bg-orange-50/50',    // Oct
+      'bg-teal-50/50',      // Nov
+      'bg-yellow-50/50'     // Dec
+    ];
+    return colors[month] || '';
+  };
+
+  const toggleSort = () => {
+    setSortDir(prev => prev === 'asc' ? 'desc' : 'asc');
+  };
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -104,7 +142,14 @@ const Finance: React.FC<FinanceProps> = ({
               <tr>
                 <th className="px-6 py-4">Descrição</th>
                 <th className="px-6 py-4">Categoria</th>
-                <th className="px-6 py-4">Data</th>
+                <th className="px-6 py-4 cursor-pointer hover:text-slate-900 transition-colors group/header" onClick={toggleSort}>
+                  <div className="flex items-center">
+                    Data
+                    <span className="ml-1 text-slate-400">
+                      {sortDir === 'asc' ? '↑' : '↓'}
+                    </span>
+                  </div>
+                </th>
                 <th className="px-6 py-4">Tipo</th>
                 <th className="px-6 py-4 text-right">Valor</th>
                 <th className="px-6 py-4 text-right">Ações</th>
@@ -112,7 +157,7 @@ const Finance: React.FC<FinanceProps> = ({
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filteredTransactions.map((t) => (
-                <tr key={t.id} className="hover:bg-slate-50 transition-colors group">
+                <tr key={t.id} className={`transition-colors group ${getMonthColor(t.date)} hover:bg-slate-100/50`}>
                   <td className="px-6 py-4 font-medium text-slate-900">
                     <div className="flex items-start">
                       <div className={`mt-1 p-1.5 rounded-full mr-3 shrink-0 ${t.type === 'revenue' ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}>
@@ -184,7 +229,7 @@ const Finance: React.FC<FinanceProps> = ({
         {/* Mobile Card List View */}
         <div className="md:hidden divide-y divide-slate-100">
           {filteredTransactions.map((t) => (
-            <div key={t.id} className="p-4 space-y-3">
+            <div key={t.id} className={`p-4 space-y-3 ${getMonthColor(t.date)}`}>
               <div className="flex justify-between items-start">
                 <div className="flex items-start">
                   <div className={`p-2 rounded-full mr-3 shrink-0 ${t.type === 'revenue' ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}>
@@ -203,7 +248,7 @@ const Finance: React.FC<FinanceProps> = ({
               </div>
 
               {t.additionalServiceDescription && (
-                <div className="text-xs text-slate-500 bg-slate-50 p-2 rounded-lg border border-slate-100 flex items-center italic">
+                <div className="text-xs text-slate-500 bg-white/50 p-2 rounded-lg border border-slate-100 flex items-center italic">
                   <Plus size={10} className="mr-1" />
                   {t.additionalServiceDescription} (+{formatCurrency(t.additionalServiceValue || 0)})
                 </div>

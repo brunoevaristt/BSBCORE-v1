@@ -66,7 +66,7 @@ export interface DashboardMetrics {
   growth: number;
 }
 
-export type DateFilterType = 'all' | 'last-week' | 'last-month' | 'custom' | 'specific-date';
+export type DateFilterType = 'all' | 'last-week' | 'last-month' | 'this-month' | 'custom' | 'specific-date' | 'january' | 'february' | 'march' | 'april' | 'may' | 'june' | 'july' | 'august' | 'september' | 'october' | 'november' | 'december';
 
 export interface DateFilterState {
   type: DateFilterType;
