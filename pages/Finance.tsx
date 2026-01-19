@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Transaction, Client, DateFilterState } from '../types';
-import { ArrowDownCircle, ArrowUpCircle, RefreshCw, Plus, Calendar, Edit2, Trash2 } from 'lucide-react';
+import { ArrowDownCircle, ArrowUpCircle, RefreshCw, Plus, Calendar, Edit2, Trash2, Copy } from 'lucide-react';
 import DateRangeFilter from '../components/DateRangeFilter';
 import TransactionModal from '../components/TransactionModal';
 
@@ -25,7 +25,7 @@ const Finance: React.FC<FinanceProps> = ({
 }) => {
   const [dateFilter, setDateFilter] = useState<DateFilterState>({ type: 'all' });
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [editingTransaction, setEditingTransaction] = useState<Partial<Transaction> | null>(null);
 
   // Filter transactions
   const filteredTransactions = useMemo(() => {
@@ -45,13 +45,20 @@ const Finance: React.FC<FinanceProps> = ({
     setIsModalOpen(true);
   };
 
+  const handleDuplicate = (transaction: Transaction) => {
+    // Create a copy without the ID
+    const { id, ...duplicatedData } = transaction;
+    setEditingTransaction(duplicatedData);
+    setIsModalOpen(true);
+  };
+
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingTransaction(null);
   };
 
   const handleSave = (t: Partial<Transaction>) => {
-    if (editingTransaction) {
+    if (t.id) {
       onUpdateTransaction(t);
     } else {
       onAddTransaction(t);
@@ -142,6 +149,13 @@ const Finance: React.FC<FinanceProps> = ({
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2 md:opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
+                        onClick={() => handleDuplicate(t)}
+                        className="p-1.5 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all"
+                        title="Duplicar"
+                      >
+                        <Copy size={16} />
+                      </button>
+                      <button
                         onClick={() => handleEdit(t)}
                         className="p-1.5 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all"
                         title="Editar"
@@ -207,6 +221,12 @@ const Finance: React.FC<FinanceProps> = ({
                   {t.type === 'revenue' ? 'RECEITA' : 'DESPESA'}
                 </span>
                 <div className="flex gap-4">
+                  <button
+                    onClick={() => handleDuplicate(t)}
+                    className="text-slate-400 hover:text-slate-900 flex items-center text-xs font-bold"
+                  >
+                    <Copy size={14} className="mr-1" /> Duplicar
+                  </button>
                   <button
                     onClick={() => handleEdit(t)}
                     className="text-slate-400 hover:text-slate-900 flex items-center text-xs font-bold"
