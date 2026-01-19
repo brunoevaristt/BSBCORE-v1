@@ -4,7 +4,7 @@ import { Transaction, Client, DashboardMetrics, DateFilterState } from '../types
 import MetricCard from '../components/MetricCard';
 import DateRangeFilter from '../components/DateRangeFilter';
 import { DollarSign, TrendingUp, Users, Activity, Edit2, Target } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, Legend } from 'recharts';
 
 interface DashboardProps {
   transactions: Transaction[];
@@ -19,7 +19,7 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, clients }) => {
   // Filter transactions
   const filteredTransactions = useMemo(() => {
     if (dateFilter.type === 'all') return transactions;
-    
+
     return transactions.filter(t => {
       if (!dateFilter.startDate) return true;
       const tDate = t.date.split('T')[0];
@@ -38,7 +38,7 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, clients }) => {
     const totalExpenses = filteredTransactions
       .filter(t => t.type === 'expense')
       .reduce((acc, curr) => acc + curr.amount, 0);
-    
+
     // MRR = Sum of monthlyValue of active clients (Current Status, not filtered by date usually, but could be)
     const mrr = clients
       .filter(c => c.status === 'active')
@@ -60,17 +60,62 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, clients }) => {
   // Goal Progress Calculation (Prevent division by zero)
   const goalProgress = monthlyGoal > 0 ? Math.min((metrics.totalRevenue / monthlyGoal) * 100, 100) : 0;
 
-  // Projection Data for Chart (Dynamic based on current MRR)
-  const projectionData = [
-    { name: 'Jan', revenue: metrics.mrr * 0.9, recurring: metrics.mrr * 0.8 },
-    { name: 'Fev', revenue: metrics.mrr * 0.95, recurring: metrics.mrr * 0.9 },
-    { name: 'Mar', revenue: metrics.mrr, recurring: metrics.mrr },
-    { name: 'Abr', revenue: metrics.mrr * 1.05, recurring: metrics.mrr * 1.02 },
-    { name: 'Mai', revenue: metrics.mrr * 1.12, recurring: metrics.mrr * 1.05 },
-    { name: 'Jun', revenue: metrics.mrr * 1.20, recurring: metrics.mrr * 1.10 },
-  ];
+  // Data for Comparison Chart (Revenue vs Expenses by Month)
+  const comparisonData = useMemo(() => {
+    const months: Record<string, { month: string, revenue: number, expense: number, date: Date }> = {};
 
-  const formatCurrency = (val: number) => 
+    filteredTransactions.forEach(t => {
+      const d = new Date(t.date);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      if (!months[key]) {
+        months[key] = {
+          month: d.toLocaleDateString('pt-BR', { month: 'short' }),
+          revenue: 0,
+          expense: 0,
+          date: d
+        };
+      }
+      if (t.type === 'revenue') months[key].revenue += t.amount;
+      else months[key].expense += t.amount;
+    });
+
+    return Object.values(months).sort((a, b) => a.date.getTime() - b.date.getTime());
+  }, [filteredTransactions]);
+
+  // Data for Composition Charts
+  const expensesByCategory = useMemo(() => {
+    const categories: Record<string, number> = {};
+    filteredTransactions
+      .filter(t => t.type === 'expense')
+      .forEach(t => {
+        categories[t.category] = (categories[t.category] || 0) + t.amount;
+      });
+    return Object.entries(categories).map(([name, value]) => ({ name, value }));
+  }, [filteredTransactions]);
+
+  const revenueByOrigin = useMemo(() => {
+    const origins: Record<string, number> = {};
+    filteredTransactions
+      .filter(t => t.type === 'revenue')
+      .forEach(t => {
+        origins[t.category] = (origins[t.category] || 0) + t.amount;
+      });
+    return Object.entries(origins).map(([name, value]) => ({ name, value }));
+  }, [filteredTransactions]);
+
+  // Projection Data for Chart (12 months)
+  const projectionData = useMemo(() => {
+    const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+    return months.map((m, i) => ({
+      name: m,
+      revenue: metrics.mrr * (1 + (i * 0.05)), // Simulating 5% growth per month
+      recurring: metrics.mrr * (1 + (i * 0.02))
+    }));
+  }, [metrics.mrr]);
+
+  const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+
+  const formatCurrency = (val: number) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
   return (
@@ -81,29 +126,29 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, clients }) => {
           <p className="text-slate-500 text-sm">Visão executiva do negócio hoje.</p>
         </div>
         <div className="flex items-center gap-4">
-           <DateRangeFilter filter={dateFilter} onChange={setDateFilter} />
-           <div className="text-right hidden md:block pl-4 border-l border-slate-200">
-             <p className="text-xs text-slate-400 font-medium uppercase tracking-wide">MRR Atual</p>
-             <p className="text-2xl font-bold text-emerald-600">{formatCurrency(metrics.mrr)}</p>
-           </div>
+          <DateRangeFilter filter={dateFilter} onChange={setDateFilter} />
+          <div className="text-right hidden md:block pl-4 border-l border-slate-200">
+            <p className="text-xs text-slate-400 font-medium uppercase tracking-wide">MRR Atual</p>
+            <p className="text-2xl font-bold text-emerald-600">{formatCurrency(metrics.mrr)}</p>
+          </div>
         </div>
       </div>
 
       {/* Primary KPI Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <MetricCard 
+        <MetricCard
           title="Receita (Período)"
           value={formatCurrency(metrics.totalRevenue)}
           trend={0}
           icon={<DollarSign className="w-5 h-5" />}
         />
-        <MetricCard 
+        <MetricCard
           title="Lucro Líquido"
           value={formatCurrency(metrics.netProfit)}
           trend={0}
           icon={<TrendingUp className="w-5 h-5" />}
         />
-        <MetricCard 
+        <MetricCard
           title="Despesas"
           value={formatCurrency(metrics.totalExpenses)}
           trend={0}
@@ -111,7 +156,7 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, clients }) => {
           neutral={true}
           icon={<Activity className="w-5 h-5" />}
         />
-        <MetricCard 
+        <MetricCard
           title="Clientes Ativos"
           value={metrics.activeClients.toString()}
           trend={0}
@@ -119,29 +164,50 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, clients }) => {
         />
       </div>
 
+      {/* Comparison Chart Section */}
+      <div className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm">
+        <h3 className="text-lg font-semibold text-slate-900 mb-6">Comparativo Mensal (Faturamento × Despesas)</h3>
+        <div className="h-72 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={comparisonData}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+              <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
+              <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} tickFormatter={(val) => `R$${val / 1000}k`} />
+              <Tooltip
+                contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0' }}
+                formatter={(val: number) => formatCurrency(val)}
+              />
+              <Legend verticalAlign="top" height={36} />
+              <Bar dataKey="revenue" name="Faturamento" fill="#10b981" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="expense" name="Despesas" fill="#ef4444" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
       {/* Secondary KPI & Projection */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Chart */}
         <div className="lg:col-span-2 bg-white p-6 rounded-lg border border-slate-100 shadow-sm">
-          <h3 className="text-lg font-semibold text-slate-900 mb-6">Projeção de Receita Recorrente (6 Meses)</h3>
+          <h3 className="text-lg font-semibold text-slate-900 mb-6">Projeção de Receita Recorrente (12 Meses)</h3>
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={projectionData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorRv" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.1}/>
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.1} />
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
-                <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} tickFormatter={(value) => `R$${value/1000}k`} />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} tickFormatter={(value) => `R$${value / 1000}k`} />
+                <Tooltip
+                  contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0' }}
                   formatter={(value: number) => formatCurrency(value)}
                 />
-                <Area type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorRv)" />
-                <Area type="monotone" dataKey="recurring" stroke="#3b82f6" strokeWidth={2} strokeDasharray="5 5" fill="none" />
+                <Area type="monotone" dataKey="revenue" name="Projeção Total" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorRv)" />
+                <Area type="monotone" dataKey="recurring" name="Base Recorrente" stroke="#3b82f6" strokeWidth={2} strokeDasharray="5 5" fill="none" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -159,45 +225,123 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, clients }) => {
           </div>
 
           <div className="bg-white p-5 rounded-lg border border-slate-100 shadow-sm relative overflow-hidden">
-             <div className="flex justify-between items-start mb-2">
-                <span className="text-xs text-slate-400 font-medium uppercase flex items-center">
-                   <Target size={14} className="mr-1" /> Meta Mensal
-                </span>
-                <button 
-                  onClick={() => setIsEditingGoal(!isEditingGoal)}
-                  className="text-slate-300 hover:text-slate-600 transition-colors"
-                >
-                  <Edit2 size={14} />
-                </button>
-             </div>
-             
-             {isEditingGoal ? (
-               <div className="mb-4">
-                 <input 
-                   type="number" 
-                   value={monthlyGoal}
-                   onChange={(e) => setMonthlyGoal(Number(e.target.value))}
-                   className="w-full text-lg font-bold border-b border-slate-300 outline-none pb-1 bg-white text-slate-900"
-                   autoFocus
-                   onBlur={() => setIsEditingGoal(false)}
-                   placeholder="0"
-                 />
-               </div>
-             ) : (
-               <div className="flex items-baseline mb-4">
-                 <span className="text-2xl font-bold text-slate-900">{formatCurrency(monthlyGoal)}</span>
-               </div>
-             )}
+            <div className="flex justify-between items-start mb-2">
+              <span className="text-xs text-slate-400 font-medium uppercase flex items-center">
+                <Target size={14} className="mr-1" /> Meta Mensal
+              </span>
+              <button
+                onClick={() => setIsEditingGoal(!isEditingGoal)}
+                className="text-slate-300 hover:text-slate-600 transition-colors"
+              >
+                <Edit2 size={14} />
+              </button>
+            </div>
 
-             <div className="relative pt-1">
-                <div className="flex mb-2 items-center justify-between text-xs">
-                   <span className="font-semibold text-emerald-600">{Math.round(goalProgress)}% Atingido</span>
-                   <span className="text-slate-400">{formatCurrency(metrics.totalRevenue)} atual</span>
-                </div>
-                <div className="overflow-hidden h-2 mb-1 text-xs flex rounded-full bg-slate-100">
-                   <div style={{ width: `${goalProgress}%` }} className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-gradient-to-r from-emerald-400 to-emerald-600 transition-all duration-500"></div>
-                </div>
-             </div>
+            {isEditingGoal ? (
+              <div className="mb-4">
+                <input
+                  type="number"
+                  value={monthlyGoal}
+                  onChange={(e) => setMonthlyGoal(Number(e.target.value))}
+                  className="w-full text-lg font-bold border-b border-slate-300 outline-none pb-1 bg-white text-slate-900"
+                  autoFocus
+                  onBlur={() => setIsEditingGoal(false)}
+                  placeholder="0"
+                />
+              </div>
+            ) : (
+              <div className="flex items-baseline mb-4">
+                <span className="text-2xl font-bold text-slate-900">{formatCurrency(monthlyGoal)}</span>
+              </div>
+            )}
+
+            <div className="relative pt-1">
+              <div className="flex mb-2 items-center justify-between text-xs">
+                <span className="font-semibold text-emerald-600">{Math.round(goalProgress)}% Atingido</span>
+                <span className="text-slate-400">{formatCurrency(metrics.totalRevenue)} atual</span>
+              </div>
+              <div className="overflow-hidden h-2 mb-1 text-xs flex rounded-full bg-slate-100">
+                <div style={{ width: `${goalProgress}%` }} className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-gradient-to-r from-emerald-400 to-emerald-600 transition-all duration-500"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Composition Charts */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm">
+          <h3 className="text-lg font-semibold text-slate-900 mb-6">Distribuição de Despesas por Categoria</h3>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={expensesByCategory}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={80}
+                  paddingAngle={5}
+                  dataKey="value"
+                >
+                  {expensesByCategory.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(val: number) => formatCurrency(val)} />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm">
+          <h3 className="text-lg font-semibold text-slate-900 mb-6">Distribuição do Faturamento por Origem</h3>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={revenueByOrigin}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={80}
+                  paddingAngle={5}
+                  dataKey="value"
+                >
+                  {revenueByOrigin.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(val: number) => formatCurrency(val)} />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+
+      {/* Result Section */}
+      <div className="bg-slate-900 p-8 rounded-2xl text-white shadow-xl overflow-hidden relative">
+        <div className="absolute top-0 right-0 p-8 opacity-10">
+          <TrendingUp size={120} />
+        </div>
+        <div className="relative z-10">
+          <h3 className="text-xl font-bold mb-8">Resultado Financeiro do Período</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="space-y-2">
+              <p className="text-slate-400 text-sm uppercase tracking-wider font-semibold">Faturamento Total</p>
+              <p className="text-3xl font-bold text-emerald-400">{formatCurrency(metrics.totalRevenue)}</p>
+            </div>
+            <div className="space-y-2 border-l border-slate-800 pl-8">
+              <p className="text-slate-400 text-sm uppercase tracking-wider font-semibold">Despesas Totais</p>
+              <p className="text-3xl font-bold text-rose-400">{formatCurrency(metrics.totalExpenses)}</p>
+            </div>
+            <div className="space-y-2 border-l border-slate-800 pl-8">
+              <p className="text-slate-400 text-sm uppercase tracking-wider font-semibold">Lucro Líquido</p>
+              <p className="text-4xl font-black text-white">{formatCurrency(metrics.netProfit)}</p>
+              <p className="text-xs text-slate-500 font-medium">Margem: {metrics.totalRevenue > 0 ? Math.round((metrics.netProfit / metrics.totalRevenue) * 100) : 0}%</p>
+            </div>
           </div>
         </div>
       </div>
