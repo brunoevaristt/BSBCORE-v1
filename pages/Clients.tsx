@@ -102,8 +102,11 @@ const Clients: React.FC<ClientsProps> = ({ clients, onAddClient, onUpdateClient,
                 <div>
                   <h3 className="font-semibold text-slate-900 truncate max-w-[150px]">{client.name}</h3>
                   <div className="flex items-center text-xs text-slate-500">
-                    <Circle size={8} className={`mr-1.5 ${client.status === 'active' ? 'text-emerald-500 fill-emerald-500' : 'text-amber-500 fill-amber-500'}`} />
+                    <Circle size={8} className={`mr-1.5 ${client.status === 'active' ? 'text-emerald-500 fill-emerald-500' : client.status === 'paused' ? 'text-amber-500 fill-amber-500' : 'text-rose-500 fill-rose-500'}`} />
                     {client.status === 'active' ? 'Ativo' : client.status === 'paused' ? 'Pausado' : 'Cancelado'}
+                    {client.status === 'churned' && client.terminationReason && (
+                      <span className="ml-1.5 text-rose-400">({client.terminationReason})</span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -118,9 +121,33 @@ const Clients: React.FC<ClientsProps> = ({ clients, onAddClient, onUpdateClient,
                 <span className="text-slate-500">LTV Estimado</span>
                 <span className="font-medium text-emerald-600">{formatCurrency(client.ltv)}</span>
               </div>
-              <div className="flex justify-between text-sm pt-1">
-                <span className="text-slate-500">Início</span>
-                <span className="text-slate-700">{new Date(client.startDate).toLocaleDateString('pt-BR')}</span>
+              <div className="space-y-1 pt-1">
+                <div className="flex justify-between text-xs">
+                  <span className="text-slate-400">Período do Contrato</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-500 shrink-0">Início:</span>
+                  <span className="text-slate-700">{new Date(client.startDate).toLocaleDateString('pt-BR')}</span>
+                </div>
+                {client.endDate && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-500 shrink-0">Término:</span>
+                    <span className={`font-medium ${client.status === 'active' &&
+                        new Date(client.endDate).getTime() - new Date().getTime() < 30 * 24 * 60 * 60 * 1000 &&
+                        new Date(client.endDate).getTime() - new Date().getTime() > 0
+                        ? 'text-amber-600'
+                        : new Date(client.endDate).getTime() < new Date().getTime()
+                          ? 'text-rose-600'
+                          : 'text-slate-700'
+                      }`}>
+                      {new Date(client.endDate).toLocaleDateString('pt-BR')}
+                      {client.status === 'active' &&
+                        new Date(client.endDate).getTime() - new Date().getTime() < 30 * 24 * 60 * 60 * 1000 &&
+                        new Date(client.endDate).getTime() - new Date().getTime() > 0 &&
+                        ' (Expira em breve)'}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
 

@@ -13,6 +13,9 @@ const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, onSave, init
   const [name, setName] = useState('');
   const [monthlyValue, setMonthlyValue] = useState<number>(0);
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
+  const [endDate, setEndDate] = useState('');
+  const [status, setStatus] = useState<'active' | 'paused' | 'churned'>('active');
+  const [terminationReason, setTerminationReason] = useState('');
   const [tags, setTags] = useState('');
 
   useEffect(() => {
@@ -21,6 +24,9 @@ const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, onSave, init
         setName(initialData.name);
         setMonthlyValue(initialData.monthlyValue);
         setStartDate(initialData.startDate.split('T')[0]);
+        setEndDate(initialData.endDate ? initialData.endDate.split('T')[0] : '');
+        setStatus(initialData.status);
+        setTerminationReason(initialData.terminationReason || '');
         setTags(initialData.tags.join(', '));
       } else {
         resetForm();
@@ -34,11 +40,13 @@ const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, onSave, init
       name,
       monthlyValue,
       startDate,
+      endDate: endDate || undefined,
       tags: tags.split(',').map(t => t.trim()).filter(t => t !== ''),
-      status: initialData ? initialData.status : 'active',
+      status: status,
+      terminationReason: status === 'churned' ? terminationReason : undefined,
       ltv: monthlyValue * 12 // Simplified Estimate
     };
-    
+
     if (initialData) {
       payload.id = initialData.id;
     }
@@ -52,6 +60,9 @@ const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, onSave, init
     setName('');
     setMonthlyValue(0);
     setStartDate(new Date().toISOString().split('T')[0]);
+    setEndDate('');
+    setStatus('active');
+    setTerminationReason('');
     setTags('');
   };
 
@@ -110,6 +121,53 @@ const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, onSave, init
               />
             </div>
           </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Data de Término (Opcional)</label>
+            <div className="relative">
+              <Calendar className="absolute left-3 top-2.5 text-slate-400 w-4 h-4" />
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm bg-white text-slate-900 focus:ring-2 focus:ring-slate-900 focus:border-transparent outline-none"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Status do Contrato</label>
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value as any)}
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white text-slate-900 focus:ring-2 focus:ring-slate-900 focus:border-transparent outline-none appearance-none"
+            >
+              <option value="active">Ativo</option>
+              <option value="paused">Pausado</option>
+              <option value="churned">Cancelado / Encerrado</option>
+            </select>
+          </div>
+
+          {status === 'churned' && (
+            <div className="animate-in fade-in slide-in-from-top-2 duration-200">
+              <label className="block text-xs font-semibold text-rose-500 uppercase mb-1">Motivo do Encerramento</label>
+              <select
+                value={terminationReason}
+                onChange={(e) => setTerminationReason(e.target.value)}
+                className="w-full px-3 py-2 border border-rose-100 rounded-lg text-sm bg-rose-50 text-slate-900 focus:ring-2 focus:ring-rose-500 focus:border-transparent outline-none"
+                required
+              >
+                <option value="">Selecione um motivo...</option>
+                <option value="Inadimplência">Inadimplência</option>
+                <option value="Falta de resultados">Falta de resultados</option>
+                <option value="Insatisfação">Insatisfação</option>
+                <option value="Falta de entrega">Falta de entrega</option>
+                <option value="Corte de custos">Corte de custos</option>
+                <option value="Mudança de estratégia">Mudança de estratégia</option>
+                <option value="Outro">Outro</option>
+              </select>
+            </div>
+          )}
 
           <div>
             <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Tags (separadas por vírgula)</label>

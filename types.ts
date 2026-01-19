@@ -10,6 +10,8 @@ export interface Client {
   status: ClientStatus;
   ltv: number;
   startDate: string;
+  endDate?: string;
+  terminationReason?: string;
   tags: string[];
 }
 
@@ -48,7 +50,7 @@ export interface TrackingEntry {
   startDate: string;
   endDate: string;
   // Map stageId to the value count
-  metrics: Record<string, number>; 
+  metrics: Record<string, number>;
   revenue: number;
 }
 

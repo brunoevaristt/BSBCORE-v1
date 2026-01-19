@@ -79,6 +79,37 @@ const AppContent: React.FC = () => {
     }
   };
 
+  // Check for expiring contracts
+  useEffect(() => {
+    if (!loading && clients.length > 0) {
+      const thirtyDaysFromNow = new Date();
+      thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+      const now = new Date();
+
+      const expiringSoon = clients.filter(c =>
+        c.status === 'active' &&
+        c.endDate &&
+        new Date(c.endDate) <= thirtyDaysFromNow &&
+        new Date(c.endDate) > now
+      );
+
+      if (expiringSoon.length > 0) {
+        // Just notify about the first few or a summary
+        if (expiringSoon.length === 1) {
+          setNotification({
+            message: `O contrato da empresa ${expiringSoon[0].name} expira em ${new Date(expiringSoon[0].endDate!).toLocaleDateString('pt-BR')}.`,
+            type: 'info'
+          });
+        } else {
+          setNotification({
+            message: `Você tem ${expiringSoon.length} contratos expirando nos próximos 30 dias.`,
+            type: 'info'
+          });
+        }
+      }
+    }
+  }, [loading, clients]);
+
   const handleNavigate = (page: string) => {
     setActivePage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });

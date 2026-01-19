@@ -27,6 +27,8 @@ export const getClients = async (): Promise<Client[]> => {
         status: c.status,
         ltv: c.ltv,
         startDate: c.start_date,
+        endDate: c.end_date,
+        terminationReason: c.termination_reason,
         tags: c.tags || []
     }));
 };
@@ -41,6 +43,8 @@ export const addClient = async (client: Partial<Client>): Promise<Client> => {
             status: client.status,
             ltv: client.ltv,
             start_date: client.startDate,
+            end_date: client.endDate,
+            termination_reason: client.terminationReason,
             tags: client.tags,
             user_id: userId
         }])
@@ -56,6 +60,8 @@ export const addClient = async (client: Partial<Client>): Promise<Client> => {
         status: data.status,
         ltv: data.ltv,
         startDate: data.start_date,
+        endDate: data.end_date,
+        terminationReason: data.termination_reason,
         tags: data.tags || []
     };
 };
@@ -71,6 +77,8 @@ export const updateClient = async (client: Partial<Client>): Promise<void> => {
             status: client.status,
             ltv: client.ltv,
             start_date: client.startDate,
+            end_date: client.endDate,
+            termination_reason: client.terminationReason,
             tags: client.tags
         })
         .eq('id', client.id);
